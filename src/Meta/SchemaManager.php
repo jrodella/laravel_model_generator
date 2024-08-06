@@ -36,6 +36,11 @@ class SchemaManager implements IteratorAggregate
     private $connection;
 
     /**
+     * @var string
+     */
+    private $type;
+
+    /**
      * @var \Reliese\Meta\Schema[]
      */
     protected $schemas = [];
@@ -107,7 +112,16 @@ class SchemaManager implements IteratorAggregate
      */
     protected function type()
     {
-        return get_class($this->connection);
+        return empty($this->type) ? get_class($this->connection) : $this->type;
+    }
+
+    /**
+     * @param string $type
+     */
+    protected function setType($type)
+    {
+        $this->type = $type;
+        return $this;
     }
 
     /**
@@ -115,7 +129,18 @@ class SchemaManager implements IteratorAggregate
      */
     protected function hasMapping()
     {
-        return array_key_exists($this->type(), static::$lookup);
+        $hasMapping = array_key_exists($this->type(), static::$lookup);
+        if ($hasMapping) {
+            return $hasMapping;
+        }
+        foreach (static::$lookup as $class => $schema) {
+            if (is_subclass_of($this->type(), $class)) {
+                $hasMapping = true;
+                $this->setType($class);
+                break;
+            }
+        }
+        return $hasMapping;
     }
 
     /**
